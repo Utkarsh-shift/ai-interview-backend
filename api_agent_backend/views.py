@@ -352,6 +352,7 @@ class GetStudentData(APIView):
 
         try:
             student_data = StudentJobData.objects.get(batch_id=batch_id)
+            job_data = JobData.objects.get(job_id = student_data.job_id)
             response_data = {
                 "batch_id": student_data.batch_id,
                 "student_name": student_data.student_name,
@@ -365,43 +366,21 @@ class GetStudentData(APIView):
                 "job_id": student_data.job_id,
                 "created_at": student_data.created_at,
                 "updated_at": student_data.updated_at,
+                "job_details": {
+                    "job_id": job_data.job_id,
+                    "title": job_data.title,
+                    "description": job_data.description,
+                    "technical_skills": job_data.technical_skills,
+                    "behavioural_skills": job_data.behavioural_skills,
+                    "focus_skills": job_data.focus_skills,
+                    "industry": job_data.industry,
+                    "min_experience": job_data.min_experience,
+                    "max_experience": job_data.max_experience,
+                    "created_at": job_data.created_at,
+                    "webhook_url": job_data.webhook_url
+                }
             }
             return Response(response_data, status=status.HTTP_200_OK)
         except StudentJobData.DoesNotExist:
             return Response({"error": "Student data not found or invalid"}, status=status.HTTP_404_NOT_FOUND)
         
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import JobDetails
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-
-@method_decorator(csrf_exempt, name='dispatch')
-class GetJobData(APIView):
-    def post(self, request):
-        job_id = request.data.get('job_id')
-
-        if not job_id:
-            return Response({"error": "Missing job_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            job = JobDetails.objects.get(job_id=job_id)
-            response_data = {
-                "job_id": job.job_id,
-                "title": job.title,
-                "description": job.description,
-                "technical_skills": job.technical_skills,
-                "behavioural_skills": job.behavioural_skills,
-                "focus_skills": job.focus_skills,
-                "industry": job.industry,
-                "min_experience": job.min_experience,
-                "max_experience": job.max_experience,
-                "created_at": job.created_at,
-                "webhook_url": job.webhook_url
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
-        except JobDetails.DoesNotExist:
-            return Response({"error": "Job data not found or invalid"}, status=status.HTTP_404_NOT_FOUND)
