@@ -16,11 +16,16 @@ from .models import StudentJobData
 
 from decouple import config
 
-BASE_DIR = Path(config('BASE_DIR'))
+from django.conf import settings
 
-bucket_name = config('bucket_name')
-aws_access_key_id = config('aws_access_key_id')
-aws_secret_access_key = config('aws_secret_access_key')
+
+CUSTOM_BASE_URL = config('CUSTOM_BASE_URL')
+
+BASE_DIR = config('BASE_DIR')
+
+BUCKET_NAME = config('BUCKET_NAME')
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
 
 executor = ThreadPoolExecutor(max_workers=10)
 
@@ -69,11 +74,11 @@ def process_merge_and_upload(session_id):
                 if success:
                     s3_video_file_url = upload_video_to_s3(
                         file_name=str(output_file),
-                        bucket_name=bucket_name,
+                        BUCKET_NAME=BUCKET_NAME,
                         session_id=session_id,
                         folder_type=folder_type,
-                        aws_access_key_id=aws_access_key_id,
-                        aws_secret_access_key=aws_secret_access_key
+                        AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
+                        AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY
                     )
                     if s3_video_file_url:
                         print(f"Video uploaded to S3 ({folder_type}): {s3_video_file_url}")
@@ -267,7 +272,7 @@ class post_student_data(APIView):
         else:
             serializer = StudentDataSerializer(data=data)
             if serializer.is_valid():
-                instance = serializer.save()  # Create and save the new instance
+                instance = serializer.save()
                 redirect_url = f"{settings.CUSTOM_BASE_URL}/?batch_id={instance.batch_id}&job_id={instance.job_id}"
                 return Response({
                     "status": "success",
@@ -364,3 +369,39 @@ class GetStudentData(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
         except StudentJobData.DoesNotExist:
             return Response({"error": "Student data not found or invalid"}, status=status.HTTP_404_NOT_FOUND)
+        
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import JobDetails
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GetJobData(APIView):
+    def post(self, request):
+        job_id = request.data.get('job_id')
+
+        if not job_id:
+            return Response({"error": "Missing job_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            job = JobDetails.objects.get(job_id=job_id)
+            response_data = {
+                "job_id": job.job_id,
+                "title": job.title,
+                "description": job.description,
+                "technical_skills": job.technical_skills,
+                "behavioural_skills": job.behavioural_skills,
+                "focus_skills": job.focus_skills,
+                "industry": job.industry,
+                "min_experience": job.min_experience,
+                "max_experience": job.max_experience,
+                "created_at": job.created_at,
+                "webhook_url": job.webhook_url
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except JobDetails.DoesNotExist:
+            return Response({"error": "Job data not found or invalid"}, status=status.HTTP_404_NOT_FOUND)
