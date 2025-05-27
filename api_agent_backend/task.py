@@ -25,7 +25,7 @@ def check_pending_evaluations():
     conn = None
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(dictionary=True, buffered=True)
         logging.info("Checking for pending evaluations...")
         print("Checking for pending evaluations...")
 
@@ -198,7 +198,9 @@ def build_payload(session_id, upload_link, skills_raw, focus_skills_raw,
     }
 
 def send_post_request(payload, session_id, cursor, conn):
-    headers = {'Content-Type': 'application/json'}
+    token=get_access_token()
+    headers = {"Authorization":f"Bearer{token}",'Content-Type': 'application/json'}
+
     response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
 
     if response.status_code == 201:
@@ -216,3 +218,27 @@ def send_post_request(payload, session_id, cursor, conn):
         update_query = "UPDATE interview_evaluations SET status = 'FAILED' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
+
+def get_access_token():
+    username=config('REPORT_USER_NAME')
+    password=config('REPORT_PASSWORD')
+    api_url=config('REPORT_ACCESS_TOKEN_API')
+    payload = {
+        'username': username,
+        'password': password
+    }
+    try:
+        response = requests.post(api_url, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        access_token = data.get('access')
+        if access_token:
+            print("Access token received:", access_token)
+            return access_token
+        else:
+            print("Access token not found in response.")
+            return None
+ 
+    except requests.exceptions.RequestException as e:
+        print("HTTP Request failed:", e)
+        return None
