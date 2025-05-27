@@ -21,7 +21,7 @@ from django.conf import settings
 
 CUSTOM_BASE_URL = config('CUSTOM_BASE_URL')
 
-BASE_DIR = config('BASE_DIR')
+BASE_DIR = Path(config('BASE_DIR'))
 
 BUCKET_NAME = config('BUCKET_NAME')
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
@@ -74,11 +74,11 @@ def process_merge_and_upload(session_id):
                 if success:
                     s3_video_file_url = upload_video_to_s3(
                         file_name=str(output_file),
-                        BUCKET_NAME=BUCKET_NAME,
+                        bucket_name=BUCKET_NAME,
                         session_id=session_id,
                         folder_type=folder_type,
-                        AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
-                        AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY
+                        aws_access_key_id=AWS_ACCESS_KEY_ID,
+                        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
                     )
                     if s3_video_file_url:
                         print(f"Video uploaded to S3 ({folder_type}): {s3_video_file_url}")
