@@ -202,18 +202,21 @@ def send_post_request(payload, session_id, cursor, conn):
     headers = {"Authorization":f"Bearer {token}",'Content-Type': 'application/json'}
 
     response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
-
+    print("Header:", headers, response.text)
     if response.status_code == 201:
+        print("Inside First Block")
         print("Request was successful. Updating status to 'PROCESSING'.", response.json())
         update_query = "UPDATE interview_evaluations SET status = 'PROCESSING' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
     elif response.status_code not in (200, 201):
+        print("Inside Second Block")
         print("Request failed. Marking status as 'ONETIMESEND'.", response.json())
         update_query = "UPDATE interview_evaluations SET status = 'ONETIMESEND' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
     else:
+        print("Inside Else Block")
         print(f"Request failed with status code: {response.status_code}. Marking as 'FAILED'.")
         update_query = "UPDATE interview_evaluations SET status = 'FAILED' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
