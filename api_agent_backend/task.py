@@ -199,6 +199,7 @@ def build_payload(session_id, upload_link, skills_raw, focus_skills_raw,
 
 def send_post_request(payload, session_id, cursor, conn):
     token=get_access_token()
+    print("Payload:", payload)
     headers = {"Authorization":f"Bearer {token}",'Content-Type': 'application/json'}
 
     response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
