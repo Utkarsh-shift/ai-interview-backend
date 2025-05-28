@@ -25,9 +25,9 @@ CUSTOM_BASE_URL = config('CUSTOM_BASE_URL')
 
 BASE_DIR = Path(config('BASE_DIR'))
 
-BUCKET_NAME = config('bucket_name')
-AWS_ACCESS_KEY_ID = config('aws_access_key_id')
-AWS_SECRET_ACCESS_KEY = config('aws_secret_access_key')
+BUCKET_NAME = config('BUCKET_NAME')
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
 
 executor = ThreadPoolExecutor(max_workers=10)
 
