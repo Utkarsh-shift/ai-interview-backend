@@ -3,7 +3,7 @@ from .views import post_student_data , merge_videos, post_job_data, DeleteStuden
 from .libcode import TokenObtainPairView,TokenRefreshView
 from django.conf.urls.static import static
 from django.conf import settings
-from .views import  GetStudentData
+from .views import  GetStudentData,getLinkvalidation
  
 urlpatterns = [
     path('api/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -16,4 +16,5 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/delete-student-data/', DeleteStudentData.as_view(), name='delete_student_data'),
     path('api/check-batch-id/', CheckBatchId.as_view(), name='check-batch-id'),
+    path('api/validate-link/', getLinkvalidation.as_view(), name='validate-link'),
 ]

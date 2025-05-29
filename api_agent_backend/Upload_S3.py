@@ -4,6 +4,8 @@ import mysql.connector
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from datetime import datetime
 from decouple import config
+import boto3
+
 host = config('host')
 user = config('user')
 password = config('password')

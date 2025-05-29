@@ -25,7 +25,7 @@ def check_pending_evaluations():
     conn = None
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(dictionary=True, buffered=True)
         logging.info("Checking for pending evaluations...")
         print("Checking for pending evaluations...")
 
@@ -199,25 +199,29 @@ def build_payload(session_id, upload_link, skills_raw, focus_skills_raw,
 
 def send_post_request(payload, session_id, cursor, conn):
     token=get_access_token()
+    print("Payload:", payload)
     headers = {"Authorization":f"Bearer {token}",'Content-Type': 'application/json'}
-    response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
 
+    response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
+    print("Header:", headers, response.text)
     if response.status_code == 201:
+        print("Inside First Block")
         print("Request was successful. Updating status to 'PROCESSING'.", response.json())
         update_query = "UPDATE interview_evaluations SET status = 'PROCESSING' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
     elif response.status_code not in (200, 201):
+        print("Inside Second Block")
         print("Request failed. Marking status as 'ONETIMESEND'.", response.json())
         update_query = "UPDATE interview_evaluations SET status = 'ONETIMESEND' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
     else:
+        print("Inside Else Block")
         print(f"Request failed with status code: {response.status_code}. Marking as 'FAILED'.")
         update_query = "UPDATE interview_evaluations SET status = 'FAILED' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
-
 
 def get_access_token():
     username=config('REPORT_USER_NAME')
@@ -229,7 +233,7 @@ def get_access_token():
     }
     try:
         response = requests.post(api_url, json=payload)
-        response.raise_for_status() 
+        response.raise_for_status()
         data = response.json()
         access_token = data.get('access')
         if access_token:
@@ -238,9 +242,7 @@ def get_access_token():
         else:
             print("Access token not found in response.")
             return None
-
+ 
     except requests.exceptions.RequestException as e:
         print("HTTP Request failed:", e)
         return None
-
-

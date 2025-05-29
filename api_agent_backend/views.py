@@ -1,17 +1,19 @@
 from pathlib import Path
 import json
+from rest_framework.response import Response
+from rest_framework.views import APIView
 import time
 from concurrent.futures import ThreadPoolExecutor
-from rest_framework.response import Response
 from rest_framework import status
 
-from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
 from django.http import JsonResponse
 from .serializers import JobDataSerializer , StudentDataSerializer
 from api_agent_backend.merg_chunks import merge_chunks
 from api_agent_backend.Upload_S3 import upload_video_to_s3, store_video_urls_in_db
-from rest_framework.views import APIView
+
 from .models import StudentJobData
 
 from decouple import config
@@ -21,7 +23,7 @@ from django.conf import settings
 
 CUSTOM_BASE_URL = config('CUSTOM_BASE_URL')
 
-BASE_DIR = config('BASE_DIR')
+BASE_DIR = Path(config('BASE_DIR'))
 
 BUCKET_NAME = config('BUCKET_NAME')
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
@@ -74,11 +76,11 @@ def process_merge_and_upload(session_id):
                 if success:
                     s3_video_file_url = upload_video_to_s3(
                         file_name=str(output_file),
-                        BUCKET_NAME=BUCKET_NAME,
+                        bucket_name=BUCKET_NAME,
                         session_id=session_id,
                         folder_type=folder_type,
-                        AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID,
-                        AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY
+                        aws_access_key_id=AWS_ACCESS_KEY_ID,
+                        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
                     )
                     if s3_video_file_url:
                         print(f"Video uploaded to S3 ({folder_type}): {s3_video_file_url}")
@@ -102,8 +104,8 @@ def process_merge_and_upload(session_id):
         print(f"Exception in process_merge_and_upload for session_id={session_id}: {str(e)}")
 
 
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CheckBatchId(APIView):
@@ -169,9 +171,9 @@ class merge_videos(APIView):
     
     
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+
+
+
 from .models import StudentJobData
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -218,13 +220,13 @@ class DeleteStudentData(APIView):
 
 
 from django.conf import settings
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+
+
+
 from django.conf import settings
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+
+
+
 from api_agent_backend.models import StudentJobData
 from api_agent_backend.serializers import   StudentDataSerializer 
 from django.conf import settings
@@ -287,9 +289,9 @@ class post_student_data(APIView):
                     "status_code": 400
                 }, status=400)
 
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
+
+
+
 
 from .models import JobDetails as JobData
 from .serializers import JobDataSerializer
@@ -331,14 +333,18 @@ class post_job_data(APIView):
             "status_code": status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+
+
  
  
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+
+
+
 from .models import StudentJobData
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GetStudentData(APIView):
@@ -384,3 +390,60 @@ class GetStudentData(APIView):
         except StudentJobData.DoesNotExist:
             return Response({"error": "Student data not found or invalid"}, status=status.HTTP_404_NOT_FOUND)
         
+
+
+
+
+
+from .models import LipsyncSession
+class getLinkvalidation(APIView):
+    def post(self, request, *args, **kwargs):
+        """
+        Validate the link by checking if the batch_id exists in the lipsync_openaiid_batchid table
+        and its Status.
+        """
+        batch_id = request.data.get('batch_id')
+
+        if not batch_id:
+            return Response({
+                "status": "failure",
+                "message": "batch_id is required",
+                "status_code": 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            record = LipsyncSession.objects.filter(batch_id=batch_id).first()
+
+            if not record:
+                return Response({
+                    "status": "success",
+                    "message": "Link is valid",
+                    "status_code": 200
+                }, status=status.HTTP_200_OK)
+
+            if record.Status.lower() == 'session expired':
+                return Response({
+                    "status": "failure",
+                    "message": "Session has expired",
+                    "status_code": 403
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            if record.Status.lower() == 'session pending':
+                return Response({
+                    "status": "success",
+                    "message": "Link is valid and session is pending",
+                    "status_code": 200
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                "status": "failure",
+                "message": f"Session status is '{record.Status}', which is not valid for usage",
+                "status_code": 403
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        except Exception as e:
+            return Response({
+                "status": "failure",
+                "message": f"Error: {str(e)}",
+                "status_code": 500
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

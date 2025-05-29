@@ -57,13 +57,15 @@ class LipsyncSession(models.Model):
     id = models.AutoField(primary_key=True)
     openai_session_id = models.CharField(max_length=255, null=True, blank=True)
     batch_id = models.CharField(max_length=255, null=True, blank=True)
+    job_id = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     started_at = models.DateTimeField(null=True, blank=True)
     ended_at = models.DateTimeField(null=True, blank=True)
+    Status = models.CharField(max_length=50, default='Session Pending')
     class Meta:
         db_table = 'lipsync_openaiid_batchid'
-
+ 
 
 class Log(models.Model):
     id = models.AutoField(primary_key=True)
@@ -146,7 +148,6 @@ class StudentJobData(models.Model):
     agent = models.CharField(max_length=1002, default="Unknown")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
     job_id = models.CharField(max_length=100, default="Unknown")
 
     class Meta:
