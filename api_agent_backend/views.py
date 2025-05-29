@@ -416,10 +416,10 @@ class getLinkvalidation(APIView):
 
             if not record:
                 return Response({
-                    "status": "failure",
-                    "message": "Invalid or expired link",
-                    "status_code": 404
-                }, status=status.HTTP_404_NOT_FOUND)
+                    "status": "success",
+                    "message": "Link is valid",
+                    "status_code": 200
+                }, status=status.HTTP_200_OK)
 
             if record.Status.lower() == 'session expired':
                 return Response({
