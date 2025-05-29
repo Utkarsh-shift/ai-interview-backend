@@ -30,10 +30,7 @@ def check_pending_evaluations():
         print("Checking for pending evaluations...")
 
         query = """
-        SELECT session_id
-        FROM interview_evaluations
-        WHERE status = 'PENDING'
-        ORDER BY id ASC
+        SELECT session_id FROM interview_evaluations WHERE status = 'PENDING' and Camera_uploads !="" ORDER BY id ASC
         """
         cursor.execute(query)
         pending_sessions = cursor.fetchall()
