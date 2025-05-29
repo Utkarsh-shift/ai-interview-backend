@@ -97,27 +97,29 @@ def get_data(session_id, batch_id):
     print(session_id, batch_id, "=======================")
     try:
         cursor.execute("""
-            SELECT job_id
+            SELECT job_id,webhook_url
             FROM student_job_data
             WHERE batch_id = %s
         """, (batch_id,))
         result = cursor.fetchone()
         job_id = result[0] if result else None
+        server_url = result[1] if result else None
         print("Job ID: ", job_id)
+        print("Server URL:", server_url)
 
         if not job_id:
             print("No job_id found for batch_id:", batch_id)
             return (None,) * 8
 
         print("Fetching webhook URL...")
-        cursor.execute("""
-            SELECT webhook_url
-            FROM job_details
-            WHERE job_id = %s
-        """, (job_id,))
-        result = cursor.fetchone()
-        server_url = result[0] if result else None
-        print("Server URL:", server_url)
+        # cursor.execute("""
+        #     SELECT webhook_url
+        #     FROM student_job_data
+        #     WHERE batch_id = %s
+        # """, (batch_id,))
+        # result = cursor.fetchone()
+        
+       
 
         cursor.execute("""
             SELECT Camera_uploads

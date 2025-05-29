@@ -333,18 +333,7 @@ class post_job_data(APIView):
             "status_code": status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
- 
- 
-
-
-
 from .models import StudentJobData
-
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GetStudentData(APIView):
@@ -372,6 +361,7 @@ class GetStudentData(APIView):
                 "job_id": student_data.job_id,
                 "created_at": student_data.created_at,
                 "updated_at": student_data.updated_at,
+                "webhook_url": student_data.webhook_url,
                 "job_details": {
                     "job_id": job_data.job_id,
                     "title": job_data.title,
@@ -382,8 +372,8 @@ class GetStudentData(APIView):
                     "industry": job_data.industry,
                     "min_experience": job_data.min_experience,
                     "max_experience": job_data.max_experience,
-                    "created_at": job_data.created_at,
-                    "webhook_url": job_data.webhook_url
+                    "created_at": job_data.created_at
+                    
                 }
             }
             return Response(response_data, status=status.HTTP_200_OK)

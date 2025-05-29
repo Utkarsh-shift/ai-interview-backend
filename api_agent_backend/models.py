@@ -122,7 +122,7 @@ class JobDetails(models.Model):
     min_experience = models.CharField(max_length=100, default="Unknown")
     max_experience = models.CharField(max_length=100, default="Unknown")
     created_at = models.DateTimeField(default=timezone.now)
-    webhook_url = models.CharField(max_length=1000, default="Unknown")
+   
 
     class Meta:
         db_table = 'job_details'
@@ -149,7 +149,7 @@ class StudentJobData(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     job_id = models.CharField(max_length=100, default="Unknown")
-
+    webhook_url = models.CharField(max_length=1000, default="Unknown")
     class Meta:
         db_table = 'student_job_data'
 
