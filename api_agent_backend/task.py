@@ -34,52 +34,52 @@ def check_pending_evaluations():
         FROM interview_evaluations
         WHERE status = 'PENDING'
         ORDER BY id ASC
-        LIMIT 1
         """
         cursor.execute(query)
-        pending_session = cursor.fetchone()
-        if not pending_session:
+        pending_sessions = cursor.fetchall()
+        if not pending_sessions:
             logging.info("No pending sessions found.")
             return
 
-        session_id = pending_session["session_id"]
-        logging.info(f"Triggering evaluation for session: {session_id}")
-        print(f"Triggering evaluation for session: {session_id}")
+        for pending_session in pending_sessions:
+            session_id = pending_session["session_id"]
+            
+            logging.info(f"Triggering evaluation for session: {session_id}")
+            print(f"Triggering evaluation for session: {session_id}")
 
-      
-        status_query = "SELECT status FROM interview_evaluations WHERE session_id = %s"
-        cursor.execute(status_query, (session_id,))
-        session_status = cursor.fetchone()
+        
+            status_query = "SELECT status FROM interview_evaluations WHERE session_id = %s"
+            cursor.execute(status_query, (session_id,))
+            session_status = cursor.fetchone()
 
-        if session_status and session_status["status"] == "PROCESSED":
-            print(f"Session {session_id} has already been processed. Skipping.")
-            return
+            if session_status and session_status["status"] == "PROCESSED":
+                print(f"Session {session_id} has already been processed. Skipping.")
+                return
 
-        fetch_batch_query = "SELECT batch_id FROM lipsync_openaiid_batchid WHERE openai_session_id = %s"
-        cursor.execute(fetch_batch_query, (session_id,))
-        batch_result = cursor.fetchone()
+            fetch_batch_query = "SELECT batch_id FROM lipsync_openaiid_batchid WHERE openai_session_id = %s"
+            cursor.execute(fetch_batch_query, (session_id,))
+            batch_result = cursor.fetchone()
 
-        if batch_result is None:
-            print(f"Error: No batch_id found for session ID {session_id}.")
-            return
+            if batch_result is None:
+                print(f"Error: No batch_id found for session ID {session_id}.")
+                return
 
-        batch_id = batch_result["batch_id"]
-        print("Batch ID: ", batch_id)
+            batch_id = batch_result["batch_id"]
+            print("Batch ID: ", batch_id)
 
-        upload_link, skills_raw, focus_skills_raw, tabswitch_count, fullscreen_exit_count, multi_person_count, cell_phone_count, server_url = get_data(session_id, batch_id)
-        get_uuid = uuid.uuid4()
+            upload_link, skills_raw, focus_skills_raw, tabswitch_count, fullscreen_exit_count, multi_person_count, cell_phone_count, server_url = get_data(session_id, batch_id)
+            get_uuid = uuid.uuid4()
 
-        if upload_link is None:
-            print("Error: Unable to retrieve data for the given session ID.")
-        else:
-            payload = build_payload(session_id, upload_link, skills_raw, focus_skills_raw, tabswitch_count, fullscreen_exit_count, multi_person_count, cell_phone_count, get_uuid, batch_id, server_url)
-            send_post_request(payload, session_id, cursor, conn)
+            if upload_link is None:
+                print("Error: Unable to retrieve data for the given session ID.")
+            else:
+                payload = build_payload(session_id, upload_link, skills_raw, focus_skills_raw, tabswitch_count, fullscreen_exit_count, multi_person_count, cell_phone_count, get_uuid, batch_id, server_url)
+                send_post_request(payload, session_id, cursor, conn)
 
-        cooldown_time = random.randint(300, 600)
-        print(f"Waiting for {cooldown_time} seconds before the next task...")
-        sleep(cooldown_time)
+            cooldown_time = random.randint(10, 20)
+            print(f"Waiting for {cooldown_time} seconds before the next task...")
+            sleep(cooldown_time)
 
-        check_pending_evaluations.apply_async(countdown=cooldown_time)
 
     except mysql.connector.Error as e:
         logging.error(f"Database Error: {e}")
@@ -198,7 +198,8 @@ def build_payload(session_id, upload_link, skills_raw, focus_skills_raw,
     }
 
 def send_post_request(payload, session_id, cursor, conn):
-    headers = {'Content-Type': 'application/json'}
+    token=get_access_token()
+    headers = {"Authorization":f"Bearer {token}",'Content-Type': 'application/json'}
     response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
 
     if response.status_code == 201:
@@ -216,3 +217,30 @@ def send_post_request(payload, session_id, cursor, conn):
         update_query = "UPDATE interview_evaluations SET status = 'FAILED' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
+
+
+def get_access_token():
+    username=config('REPORT_USER_NAME')
+    password=config('REPORT_PASSWORD')
+    api_url=config('REPORT_ACCESS_TOKEN_API')
+    payload = {
+        'username': username,
+        'password': password
+    }
+    try:
+        response = requests.post(api_url, json=payload)
+        response.raise_for_status() 
+        data = response.json()
+        access_token = data.get('access')
+        if access_token:
+            print("Access token received:", access_token)
+            return access_token
+        else:
+            print("Access token not found in response.")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print("HTTP Request failed:", e)
+        return None
+
+
