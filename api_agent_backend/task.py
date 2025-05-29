@@ -198,30 +198,47 @@ def build_payload(session_id, upload_link, skills_raw, focus_skills_raw,
     }
 
 def send_post_request(payload, session_id, cursor, conn):
-    token=get_access_token()
-    print("Payload:", payload)
-    headers = {"Authorization":f"Bearer {token}",'Content-Type': 'application/json'}
+    token = get_access_token()
+    if not token:
+        print(f"Skipping session {session_id} due to missing access token.")
+        return
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    print("Payload:", json.dumps(payload, indent=2))
+    print("Headers:", headers)
 
-    response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
-    print("Header:", headers, response.text)
-    if response.status_code == 201:
-        print("Inside First Block")
-        print("Request was successful. Updating status to 'PROCESSING'.", response.json())
-        update_query = "UPDATE interview_evaluations SET status = 'PROCESSING' WHERE session_id = %s"
+    try:
+        response = requests.post(API_POST_URL, headers=headers, data=json.dumps(payload))
+        print("Response Text:", response.text)
+        data = response.json()
+
+        if response.status_code in (200, 201):
+            status_value = data.get('status', '').lower()
+            if status_value in ('received', 'pending'):
+                print("Request successful. Marking session as 'PROCESSING'.")
+                update_query = "UPDATE interview_evaluations SET status = 'PROCESSING' WHERE session_id = %s"
+            elif status_value =='processed':
+                print("Request successful. Marking session as 'processed'.")
+                update_query = "UPDATE interview_evaluations SET status = 'PROCESSED' WHERE session_id = %s"
+            else:
+                print("Unknown status in response. Marking session as 'FAILED'.")
+                update_query = "UPDATE interview_evaluations SET status = 'FAILED' WHERE session_id = %s"
+        else:
+            print("Request failed. Marking session as 'ONETIMESEND'.")
+            update_query = "UPDATE interview_evaluations SET status = 'ONETIMESEND' WHERE session_id = %s"
+
         cursor.execute(update_query, (session_id,))
         conn.commit()
-    elif response.status_code not in (200, 201):
-        print("Inside Second Block")
-        print("Request failed. Marking status as 'ONETIMESEND'.", response.json())
-        update_query = "UPDATE interview_evaluations SET status = 'ONETIMESEND' WHERE session_id = %s"
-        cursor.execute(update_query, (session_id,))
-        conn.commit()
-    else:
-        print("Inside Else Block")
-        print(f"Request failed with status code: {response.status_code}. Marking as 'FAILED'.")
+
+    except requests.exceptions.RequestException as e:
+        print(f"HTTP Request failed: {e}")
+        print("Marking session as 'FAILED'.")
         update_query = "UPDATE interview_evaluations SET status = 'FAILED' WHERE session_id = %s"
         cursor.execute(update_query, (session_id,))
         conn.commit()
+
 
 def get_access_token():
     username=config('REPORT_USER_NAME')
